@@ -1,0 +1,35 @@
+#  Template python-build
+
+#  This template allows you to validate your python code.
+#  The workflow allows running tests and code linting on the default branch.
+
+image: python:3.8
+
+pipelines:
+  default:
+    - parallel:
+      - step:
+          name: Code Unittest
+          caches:
+            - pip
+          script:
+            - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+            - pip install pytest
+            - export PYTHONPATH=src
+            - pytest -v tests/* --junitxml=test-reports/report.xml
+      - step:
+          name: Code Lint Test
+          script:
+            # Enforce style consistency across Python projects https://flake8.pycqa.org/en/latest/manpage.html
+            - pip install flake8
+              # - flake8 . --extend-exclude=dist,build --show-source --statistics
+            - flake8 --per-file-ignores="test_app.py:F401" . --extend-exclude=dist,build --show-source --statistics
+    - step:
+        name: Deploy to Heroku Test
+        deployment: test
+        # trigger: manual  # Uncomment to make this a manual deployment.
+        script:
+          - echo "Deploying to Heroku Test environment"
+          - git remote add heroku https://heroku:$HEROKU_APP_TOKEN@git.heroku.com/$HEROKU_APP_NAME.git
+          - git remote -v
+          - git push heroku HEAD:master -f

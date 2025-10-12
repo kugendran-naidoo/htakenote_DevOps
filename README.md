@@ -6,11 +6,6 @@
 ![Commits 30d](https://raw.githubusercontent.com/kugendran-naidoo/htakenote_DevOps/main/metrics/commits_30d.png)
 ![Stars & Forks 30d](https://raw.githubusercontent.com/kugendran-naidoo/htakenote_DevOps/main/metrics/stars_forks_30d.png)
 
-
-<!-- ![Star History](https://api.star-history.com/svg?repos=kugendran-naidoo/htakenote_DevOps&type=Date) -->
-<!-- With this: -->
-![Repobeats analytics](https://repobeats.axiom.co/api/embed/kugendran-naidoo/htakenote_DevOps.svg "Project activity overview")
-
 ![Forks](https://img.shields.io/github/forks/kugendran-naidoo/htakenote_DevOps?style=social)
 ![Issues](https://img.shields.io/github/issues/kugendran-naidoo/htakenote_DevOps)
 ![License](https://img.shields.io/github/license/kugendran-naidoo/htakenote_DevOps)

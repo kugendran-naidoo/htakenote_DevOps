@@ -1,7 +1,7 @@
 name: Update Traffic Badges
 on:
   schedule:
-    - cron: "0 14 * * *"   # Everyday 14:00 UTC
+    - cron: "0 14 * * *"   # Daily 14:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -27,28 +27,29 @@ jobs:
             https://api.github.com/repos/$OWNER/$REPO/traffic/views \
             > traffic/views.json
 
-          # Sum counts (GitHub returns last 14 days). That's fine for a weekly badge.
-          TOTAL_CLONES=$(jq '[.clones[].count] | add // 0' traffic/clones.json)
-          TOTAL_VIEWS=$(jq '[.views[].count] | add // 0' traffic/views.json)
+          # Sum counts over last 14 days; default to 0 if missing
+          TOTAL_CLONES=$(jq -r '[.clones[].count] | add // 0' traffic/clones.json)
+          TOTAL_VIEWS=$(jq -r '[.views[].count] | add // 0' traffic/views.json)
 
-          echo "{\"schemaVersion\":1,\"label\":\"clones\",\"message\":\"$TOTAL_CLONES\",\"color\":\"blue\"}" > clones-badge.json
-          echo "{\"schemaVersion\":1,\"label\":\"views\",\"message\":\"$TOTAL_VIEWS\",\"color\":\"green\"}" > views-badge.json
-
-          echo "CONTENT_CLONES=$(cat clones-badge.json)" >> $GITHUB_ENV
-          echo "CONTENT_VIEWS=$(cat views-badge.json)" >> $GITHUB_ENV
+          echo "TOTAL_CLONES=$TOTAL_CLONES" >> $GITHUB_ENV
+          echo "TOTAL_VIEWS=$TOTAL_VIEWS" >> $GITHUB_ENV
 
       - name: Upload clone badge to Gist
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GIST_TOKEN }}          # <-- your PAT with gist write access
-          gistID: 2b0de4f9f92a605b780e986e6d48ffcc # <-- paste the hex ID for clones.json
-          filename: clones.json                    # must match your gist filename
-          content: ${{ env.CONTENT_CLONES }}
+          auth: ${{ secrets.GIST_TOKEN }}   # PAT with "gist" scope
+          gistID: 2b0de4f9f92a605b780e986e6d48ffcc   # clones.json gist
+          filename: clones.json
+          label: "clones (14d)"
+          message: ${{ env.TOTAL_CLONES }}
+          color: "blue"
 
       - name: Upload view badge to Gist
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GIST_TOKEN }}          # <-- your PAT with gist write access
-          gistID: 9b749f24de62343dc995f8d524027c39 # <-- paste the hex ID for views.json
-          filename: views.json                     # must match your gist filename
-          content: ${{ env.CONTENT_VIEWS }}
+          auth: ${{ secrets.GIST_TOKEN }}   # PAT with "gist" scope
+          gistID: 9b749f24de62343dc995f8d524027c39   # views.json gist
+          filename: views.json
+          label: "views (14d)"
+          message: ${{ env.TOTAL_VIEWS }}
+          color: "green"

@@ -1,19 +1,22 @@
 name: Generate Repo Metrics Charts
 on:
   schedule:
-    - cron: "0 14 * * *"     # daily 14:00 UTC
+    - cron: "0 14 * * *"
   workflow_dispatch:
 
 jobs:
   build-metrics:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write          # <-- add this
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          persist-credentials: true   # default, but explicit is fine
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
 
       - name: Install deps
         run: |
@@ -22,11 +25,10 @@ jobs:
 
       - name: Generate charts
         env:
-          GH_TOKEN: ${{ secrets.STATS_TOKEN }}   # classic PAT with scopes: gist + public_repo (or repo if private)
+          GH_TOKEN: ${{ secrets.STATS_TOKEN }}   # your PAT for API reads
           OWNER: kugendran-naidoo
           REPO: htakenote_DevOps
-        run: |
-          python scripts/generate_metrics.py
+        run: python scripts/generate_metrics.py
 
       - name: Commit updated charts
         uses: stefanzweifel/git-auto-commit-action@v5

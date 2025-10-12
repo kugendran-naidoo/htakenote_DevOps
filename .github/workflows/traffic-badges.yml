@@ -31,8 +31,8 @@ jobs:
           TOTAL_CLONES=$(jq '[.clones[].count] | add // 0' traffic/clones.json)
           TOTAL_VIEWS=$(jq '[.views[].count] | add // 0' traffic/views.json)
 
-          echo "{\"schemaVersion\":1,\"label\":\"weekly clones\",\"message\":\"$TOTAL_CLONES\",\"color\":\"blue\"}" > clones-badge.json
-          echo "{\"schemaVersion\":1,\"label\":\"weekly views\",\"message\":\"$TOTAL_VIEWS\",\"color\":\"green\"}" > views-badge.json
+          echo "{\"schemaVersion\":1,\"label\":\"clones\",\"message\":\"$TOTAL_CLONES\",\"color\":\"blue\"}" > clones-badge.json
+          echo "{\"schemaVersion\":1,\"label\":\"views\",\"message\":\"$TOTAL_VIEWS\",\"color\":\"green\"}" > views-badge.json
 
           echo "CONTENT_CLONES=$(cat clones-badge.json)" >> $GITHUB_ENV
           echo "CONTENT_VIEWS=$(cat views-badge.json)" >> $GITHUB_ENV

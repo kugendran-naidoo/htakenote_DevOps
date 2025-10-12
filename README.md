@@ -13,9 +13,10 @@
 ---
 
 ## 📊 Traffic & Popularity
+<!-- add cacheSeconds while testing; remove later if you want -->
+![Clones](https://img.shields.io/endpoint?cacheSeconds=300&url=https%3A%2F%2Fgist.githubusercontent.com%2Fkugendran-naidoo%2F2b0de4f9f92a605b780e986e6d48ffcc%2Fraw%2Fclones.json)
+![Views](https://img.shields.io/endpoint?cacheSeconds=300&url=https%3A%2F%2Fgist.githubusercontent.com%2Fkugendran-naidoo%2F9b749f24de62343dc995f8d524027c39%2Fraw%2Fviews.json)
 
-![Clones](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kugendran-naidoo/2b0de4f9f92a605b780e986e6d48ffcc/raw/clones.json)
-![Views](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kugendran-naidoo/9b749f24de62343dc995f8d524027c39/raw/views.json)
 
 > Auto-updated daily at 14:00 UTC via GitHub Actions.
 

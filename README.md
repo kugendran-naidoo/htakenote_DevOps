@@ -1,6 +1,6 @@
 # 🧠 HTakeNote
 
-## 📈 Self-hosted Metrics
+## 📈 Metrics
 
 ![Traffic 14d](https://raw.githubusercontent.com/kugendran-naidoo/htakenote_DevOps/main/metrics/traffic_14d.png)
 ![Commits 30d](https://raw.githubusercontent.com/kugendran-naidoo/htakenote_DevOps/main/metrics/commits_30d.png)

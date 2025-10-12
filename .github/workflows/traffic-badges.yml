@@ -1,0 +1,49 @@
+name: Update Traffic Badges
+on:
+  schedule:
+    - cron: "0 8 * * 1"  # Runs every Monday 08:00 UTC
+  workflow_dispatch:      # Allow manual runs too
+
+jobs:
+  update-traffic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch repository traffic data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: kugendran-naidoo
+          REPO: htakenote_DevOps
+        run: |
+          mkdir -p traffic
+          curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/$OWNER/$REPO/traffic/clones \
+            > traffic/clones.json
+          curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/$OWNER/$REPO/traffic/views \
+            > traffic/views.json
+
+          TOTAL_CLONES=$(jq '[.clones[].count] | add' traffic/clones.json)
+          TOTAL_VIEWS=$(jq '[.views[].count] | add' traffic/views.json)
+
+          echo "{\"schemaVersion\":1,\"label\":\"weekly clones\",\"message\":\"$TOTAL_CLONES\",\"color\":\"blue\"}" > clones-badge.json
+          echo "{\"schemaVersion\":1,\"label\":\"weekly views\",\"message\":\"$TOTAL_VIEWS\",\"color\":\"green\"}" > views-badge.json
+
+      - name: Upload clone badge to Gist
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GITHUB_TOKEN }}
+          gistID: YOUR_CLONES_GIST_ID
+          filename: clones.json
+          content: ${{ steps.update-traffic.outputs.content || '' }}
+        env:
+          content: ${{ steps.update-traffic.outputs.content }}
+
+      - name: Upload view badge to Gist
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GITHUB_TOKEN }}
+          gistID: YOUR_VIEWS_GIST_ID
+          filename: views.json
+          content: ${{ steps.update-traffic.outputs.content || '' }}
+        env:
+          content: ${{ steps.update-traffic.outputs.content }}

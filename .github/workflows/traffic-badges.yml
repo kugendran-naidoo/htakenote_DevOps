@@ -7,11 +7,17 @@ on:
 jobs:
   update-traffic:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    # Tip: omit custom permissions so GITHUB_TOKEN keeps default repo perms
     steps:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Sanity check secrets (won't print them)
+        run: |
+          if [ -z "${{ secrets.GIST_TOKEN }}" ]; then
+            echo "❌ GIST_TOKEN is missing. Create a PAT (classic) with the 'gist' scope and add it as a repo secret."
+            exit 1
+          fi
 
       - name: Fetch repository traffic data
         env:
@@ -19,37 +25,61 @@ jobs:
           OWNER: kugendran-naidoo
           REPO: htakenote_DevOps
         run: |
+          set -euo pipefail
           mkdir -p traffic
-          curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$OWNER/$REPO/traffic/clones \
+          # Fetch (requires push-level access; GITHUB_TOKEN typically has enough in the repo context)
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$OWNER/$REPO/traffic/clones" \
             > traffic/clones.json
-          curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$OWNER/$REPO/traffic/views \
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$OWNER/$REPO/traffic/views" \
             > traffic/views.json
+
+          echo "Raw clones.json:"
+          cat traffic/clones.json || true
+          echo
+          echo "Raw views.json:"
+          cat traffic/views.json || true
+          echo
 
           # Sum counts over last 14 days; default to 0 if missing
           TOTAL_CLONES=$(jq -r '[.clones[].count] | add // 0' traffic/clones.json)
           TOTAL_VIEWS=$(jq -r '[.views[].count] | add // 0' traffic/views.json)
 
+          echo "TOTAL_CLONES=$TOTAL_CLONES"
+          echo "TOTAL_VIEWS=$TOTAL_VIEWS"
+
           echo "TOTAL_CLONES=$TOTAL_CLONES" >> $GITHUB_ENV
-          echo "TOTAL_VIEWS=$TOTAL_VIEWS" >> $GITHUB_ENV
+          echo "TOTAL_VIEWS=$TOTAL_VIEWS"   >> $GITHUB_ENV
 
-      - name: Upload clone badge to Gist
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}   # PAT with "gist" scope
-          gistID: 2b0de4f9f92a605b780e986e6d48ffcc   # clones.json gist
-          filename: clones.json
-          label: "clones (14d)"
-          message: ${{ env.TOTAL_CLONES }}
-          color: "blue"
+      - name: Update clones.json gist via API (PATCH)
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -nc --arg content "{\"schemaVersion\":1,\"label\":\"clones (14d)\",\"message\":\"${TOTAL_CLONES}\",\"color\":\"blue\"}" \
+            '{files: {"clones.json": {content: $content}}}')
+          echo "PATCH payload for clones.json: $BODY"
+          HTTP_CODE=$(curl -sS -o /tmp/resp.json -w "%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${GIST_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/gists/2b0de4f9f92a605b780e986e6d48ffcc \
+            -d "$BODY")
+          echo "Gist PATCH status (clones): $HTTP_CODE"
+          test "$HTTP_CODE" -ge 200 -a "$HTTP_CODE" -lt 300 || (echo "Response:" && cat /tmp/resp.json && exit 1)
 
-      - name: Upload view badge to Gist
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}   # PAT with "gist" scope
-          gistID: 9b749f24de62343dc995f8d524027c39   # views.json gist
-          filename: views.json
-          label: "views (14d)"
-          message: ${{ env.TOTAL_VIEWS }}
-          color: "green"
+      - name: Update views.json gist via API (PATCH)
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -nc --arg content "{\"schemaVersion\":1,\"label\":\"views (14d)\",\"message\":\"${TOTAL_VIEWS}\",\"color\":\"green\"}" \
+            '{files: {"views.json": {content: $content}}}')
+          echo "PATCH payload for views.json: $BODY"
+          HTTP_CODE=$(curl -sS -o /tmp/resp.json -w "%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${GIST_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/gists/9b749f24de62343dc995f8d524027c39 \
+            -d "$BODY")
+          echo "Gist PATCH status (views): $HTTP_CODE"
+          test "$HTTP_CODE" -ge 200 -a "$HTTP_CODE" -lt 300 || (echo "Response:" && cat /tmp/resp.json && exit 1)

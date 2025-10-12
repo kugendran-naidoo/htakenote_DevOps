@@ -7,12 +7,17 @@
 ![Last Commit](https://img.shields.io/github/last-commit/kugendran-naidoo/htakenote_DevOps)
 [![Star History](https://api.star-history.com/svg?repos=kugendran-naidoo/htakenote_DevOps&type=Date)](https://star-history.com/#kugendran-naidoo/htakenote_DevOps)
 ![Repobeats](https://repobeats.axiom.co/api/embed/kugendran-naidoo/htakenote_DevOps.svg "Repobeats analytics image")
-![Weekly clones](https://gist.githubusercontent.com/kugendran-naidoo/2b0de4f9f92a605b780e986e6d48ffcc/raw/clones.json)
-![Weekly views](https://gist.githubusercontent.com/kugendran-naidoo/9b749f24de62343dc995f8d524027c39/raw/views.json)
 
 > 🚀 **HTakeNote** is a minimal Flask application for jotting down quick notes — ready to deploy on Heroku and optimized for simplicity, clarity, and quick DevOps integration.
 
 ---
+
+## 📊 Traffic & Popularity
+
+![Clones (14d)](https://gist.githubusercontent.com/kugendran-naidoo/2b0de4f9f92a605b780e986e6d48ffcc/raw/clones.json)
+![Views (14d)](https://gist.githubusercontent.com/kugendran-naidoo/9b749f24de62343dc995f8d524027c39/raw/views.json)
+
+> Auto-updated daily at 14:00 UTC via GitHub Actions.
 
 ## ✨ Features
 - 📝 Add, update, and delete text notes from a single-page web UI.

@@ -1,28 +1,46 @@
-# HTakeNote
+# 🧠 HTakeNote
 
-HTakeNote is a minimal Flask application for jotting down quick notes. It exposes a single-page UI backed by SQLite via SQLAlchemy, and it is ready to deploy to Heroku using the supplied `Procfile` and Bitbucket pipeline configuration.
+![Stars](https://img.shields.io/github/stars/kugendran-naidoo/htakenote_DevOps?style=social)
+![Forks](https://img.shields.io/github/forks/kugendran-naidoo/htakenote_DevOps?style=social)
+![Issues](https://img.shields.io/github/issues/kugendran-naidoo/htakenote_DevOps)
+![License](https://img.shields.io/github/license/kugendran-naidoo/htakenote_DevOps)
+![Last Commit](https://img.shields.io/github/last-commit/kugendran-naidoo/htakenote_DevOps)
+[![Star History](https://api.star-history.com/svg?repos=kugendran-naidoo/htakenote_DevOps&type=Date)](https://star-history.com/#kugendran-naidoo/htakenote_DevOps)
+![Repobeats](https://repobeats.axiom.co/api/embed/kugendran-naidoo/htakenote_DevOps.svg "Repobeats analytics image")
 
-## Features
-- Add, update, and delete text notes from a simple web interface.
-- SQLite persistence managed through SQLAlchemy's ORM layer.
-- Production entry point via Gunicorn and a Heroku `Procfile`.
-- Lightweight test scaffold with pytest and pytest-flask.
+> 🚀 **HTakeNote** is a minimal Flask application for jotting down quick notes — ready to deploy on Heroku and optimized for simplicity, clarity, and quick DevOps integration.
 
-## Tech Stack
-- Python 3.9
-- Flask 2 & Flask-SQLAlchemy
-- SQLite
-- Gunicorn (production WSGI server)
-- pytest / flake8 (testing & linting)
+---
 
-## Getting Started
+## ✨ Features
+- 📝 Add, update, and delete text notes from a single-page web UI.
+- 💾 SQLite persistence powered by SQLAlchemy’s ORM layer.
+- ☁️ Production-ready via Gunicorn and a Heroku `Procfile`.
+- 🔧 CI/CD with Bitbucket pipelines for test, lint, and deploy.
+- 🧪 Lightweight test scaffold using `pytest` and `pytest-flask`.
+
+---
+
+## ⚙️ Tech Stack
+- **Python 3.9**
+- **Flask 2 & Flask-SQLAlchemy**
+- **SQLite**
+- **Gunicorn** (production WSGI server)
+- **pytest / flake8** (testing & linting)
+
+---
+
+## ⚡ Quickstart
 
 ### Prerequisites
 - Python 3.9 (matches `runtime.txt`)
 - `pip` and `virtualenv`
 - macOS/Linux shell or Windows WSL/PowerShell
 
-You can run `scripts/1_setup_env.sh` for an automated check that Python and virtualenv are available and to scaffold a virtual environment named `venv`.
+Automated environment setup:
+```bash
+scripts/1_setup_env.sh
+
 
 ### Local Setup
 ```bash

@@ -1,150 +1,181 @@
-import os, sys, json, math
+import os, sys, json
 from datetime import datetime, timedelta, timezone
 import requests
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 OWNER = os.environ.get("OWNER")
 REPO  = os.environ.get("REPO")
 TOKEN = os.environ.get("GH_TOKEN")
 
 if not all([OWNER, REPO, TOKEN]):
-    print("Missing OWNER/REPO/GH_TOKEN")
-    sys.exit(1)
+    print("Missing OWNER/REPO/GH_TOKEN env vars"); sys.exit(1)
 
 API = "https://api.github.com"
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
-    "Accept": "application/vnd.github+json"
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
 }
 STAR_HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
-    "Accept": "application/vnd.github.v3.star+json"  # includes starred_at
+    "Accept": "application/vnd.github.v3.star+json",
+    "X-GitHub-Api-Version": "2022-11-28",
 }
 
-os.makedirs("metrics", exist_ok=True)
+METRICS_DIR = Path("metrics")
+DATA_DIR    = Path("metrics_data")  # local persistence so we can go beyond 14d for traffic
+METRICS_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-def get(url, headers=HEADERS, params=None):
+HIST_FILE = DATA_DIR / "traffic_history.json"  # { "YYYY-MM-DD": {"clones": n, "views": n} }
+
+def _get(url, headers=HEADERS, params=None):
     r = requests.get(url, headers=headers, params=params, timeout=30)
     r.raise_for_status()
     return r.json()
+
+def _pages(url, headers, params=None, max_pages=10):
+    page = 1
+    while True:
+        p = params.copy() if params else {}
+        p.update({"per_page": 100, "page": page})
+        r = requests.get(url, headers=headers, params=p, timeout=30)
+        if r.status_code == 204:
+            break
+        r.raise_for_status()
+        data = r.json()
+        if not data:
+            break
+        yield data
+        if len(data) < 100 or page >= max_pages:
+            break
+        page += 1
+
+def iso_date(ts):
+    return datetime.fromisoformat(ts.replace("Z", "+00:00")).date()
 
 def daterange(days):
     today = datetime.now(timezone.utc).date()
     return [today - timedelta(days=i) for i in range(days-1, -1, -1)]
 
-def group_by_day(timestamps):
-    # returns dict {date: count}
-    g = {}
-    for ts in timestamps:
-        d = datetime.fromisoformat(ts.replace("Z","+00:00")).date()
-        g[d] = g.get(d, 0) + 1
-    return g
+def load_history():
+    if HIST_FILE.exists():
+        with open(HIST_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
-# --------- fetch data ----------
-# 1) Clones & views: last 14 days only
-traffic_clones = get(f"{API}/repos/{OWNER}/{REPO}/traffic/clones")
-traffic_views  = get(f"{API}/repos/{OWNER}/{REPO}/traffic/views")
-clones_points = {datetime.fromisoformat(p["timestamp"].replace("Z","+00:00")).date(): p["count"] for p in traffic_clones.get("clones", [])}
-views_points  = {datetime.fromisoformat(p["timestamp"].replace("Z","+00:00")).date(): p["count"] for p in traffic_views.get("views", [])}
+def save_history(hist):
+    # keep ~90 days only
+    cutoff = datetime.now(timezone.utc).date() - timedelta(days=90)
+    pruned = {k: v for k, v in hist.items() if datetime.fromisoformat(k).date() >= cutoff}
+    with open(HIST_FILE, "w", encoding="utf-8") as f:
+        json.dump(pruned, f, indent=2, sort_keys=True)
 
-# 2) Stars timeline
-# paginated; pull first few pages (enough for small repos)
-stars = []
-page = 1
-while True:
-    data = requests.get(f"{API}/repos/{OWNER}/{REPO}/stargazers", headers=STAR_HEADERS, params={"per_page":100, "page":page}, timeout=30)
-    if data.status_code == 204 or data.status_code == 404:
-        break
-    data.raise_for_status()
-    payload = data.json()
-    if not payload:
-        break
-    stars.extend(payload)
-    if len(payload) < 100 or page >= 10:  # cap pages
-        break
-    page += 1
-star_times = [s["starred_at"] for s in stars]
+def fetch_traffic():
+    clones = _get(f"{API}/repos/{OWNER}/{REPO}/traffic/clones")
+    views  = _get(f"{API}/repos/{OWNER}/{REPO}/traffic/views")
 
-# 3) Forks timeline
-forks = []
-page = 1
-while True:
-    payload = get(f"{API}/repos/{OWNER}/{REPO}/forks", params={"per_page":100, "page":page})
-    if not payload:
-        break
-    forks.extend(payload)
-    if len(payload) < 100 or page >= 10:
-        break
-    page += 1
-fork_times = [f["created_at"] for f in forks]
+    # build day->count dicts for last 14 days
+    clones_by_day = {}
+    for p in clones.get("clones", []):
+        d = iso_date(p["timestamp"]).isoformat()
+        clones_by_day[d] = clones_by_day.get(d, 0) + int(p.get("count", 0))
 
-# 4) Commits last 30 days (count per day)
-since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-commits = []
-page = 1
-while True:
-    payload = get(f"{API}/repos/{OWNER}/{REPO}/commits", params={"since": since, "per_page":100, "page":page})
-    if not payload:
-        break
-    commits.extend(payload)
-    if len(payload) < 100 or page >= 10:
-        break
-    page += 1
-commit_times = [c["commit"]["author"]["date"] for c in commits if c.get("commit",{}).get("author")]
+    views_by_day = {}
+    for p in views.get("views", []):
+        d = iso_date(p["timestamp"]).isoformat()
+        views_by_day[d] = views_by_day.get(d, 0) + int(p.get("count", 0))
 
-# --------- build series ----------
-last14 = daterange(14)
-last30 = daterange(30)
-def series_from_points(dates, values_dict):
-    return [values_dict.get(d, 0) for d in dates]
+    return clones_by_day, views_by_day
 
-clones_series = series_from_points(last14, clones_points)
-views_series  = series_from_points(last14, views_points)
+def update_traffic_history():
+    hist = load_history()
+    clones14, views14 = fetch_traffic()
+    # merge into history (latest 14 days override existing values)
+    for d, v in clones14.items():
+        rec = hist.get(d, {})
+        rec["clones"] = v
+        hist[d] = rec
+    for d, v in views14.items():
+        rec = hist.get(d, {})
+        rec["views"] = v
+        hist[d] = rec
+    save_history(hist)
+    return hist
 
-stars_by_day = group_by_day(star_times)
-forks_by_day = group_by_day(fork_times)
-commits_by_day = group_by_day(commit_times)
+def fetch_stars_per_day(days=28):
+    starred_at = []
+    for page in _pages(f"{API}/repos/{OWNER}/{REPO}/stargazers", STAR_HEADERS):
+        for s in page:
+            if "starred_at" in s:
+                starred_at.append(iso_date(s["starred_at"]))
+    # count per day within window
+    window = set(daterange(days))
+    counts = {d: 0 for d in window}
+    for d in starred_at:
+        if d in window:
+            counts[d] += 1
+    return counts
 
-stars_cumulative = []
-forks_cumulative = []
-cum = 0
-for d in last30:
-    cum += stars_by_day.get(d, 0)
-    stars_cumulative.append(cum)
-cum = 0
-for d in last30:
-    cum += forks_by_day.get(d, 0)
-    forks_cumulative.append(cum)
-commits_series = [commits_by_day.get(d, 0) for d in last30]
+def fetch_commits_per_day(days=28):
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    commits = []
+    page = 1
+    while True:
+        payload = _get(f"{API}/repos/{OWNER}/{REPO}/commits",
+                       params={"since": since, "per_page": 100, "page": page})
+        if not payload:
+            break
+        commits.extend(payload)
+        if len(payload) < 100 or page >= 10:
+            break
+        page += 1
+    by_day = {}
+    for c in commits:
+        try:
+            ts = c["commit"]["author"]["date"]
+        except Exception:
+            continue
+        d = iso_date(ts)
+        by_day[d] = by_day.get(d, 0) + 1
+    # ensure all days present
+    window = daterange(days)
+    return {d: by_day.get(d, 0) for d in window}
 
-# --------- plot helpers ----------
-def save_line_chart(dates, yseries_list, labels, title, outfile):
-    plt.figure(figsize=(9, 3))
-    for y, label in zip(yseries_list, labels):
-        plt.plot(dates, y, label=label)
-    plt.title(title)
-    plt.xlabel("Date")
-    plt.xticks(rotation=45, ha="right", fontsize=8)
-    plt.tight_layout()
-    if len(yseries_list) > 1:
+def series_from_dict(window_dates, dct, key=None):
+    if key is None:
+        return [int(dct.get(d, 0)) for d in window_dates]
+    # for traffic history dict where value is {"clones":x,"views":y}
+    return [int(dct.get(d.isoformat(), {}).get(key, 0)) for d in window_dates]
+
+def plot_dashboard(window_days=28, outfile="metrics/activity_4w.png"):
+    # update/get traffic history
+    hist = update_traffic_history()  # merges last 14d into persistent store
+    window = daterange(window_days)
+
+    # build series
+    clones = series_from_dict(window, hist, "clones")
+    views  = series_from_dict(window, hist, "views")
+    commits = list(fetch_commits_per_day(window_days).values())
+    stars   = list(fetch_stars_per_day(window_days).values())
+
+    # draw single chart in xkcd style (hand-drawn look like your screenshot)
+    with plt.xkcd():
+        plt.figure(figsize=(10, 4))
+        plt.plot(window, clones, label="clones/day")
+        plt.plot(window, views,  label="views/day")
+        plt.plot(window, commits, label="commits/day")
+        plt.plot(window, stars,   label="stars/day")
+        plt.title(f"{OWNER}/{REPO} — Activity (last 4 weeks)")
+        plt.xlabel("Date")
+        plt.ylabel("Daily count")
+        plt.xticks(rotation=45, ha="right", fontsize=8)
+        plt.tight_layout()
         plt.legend(loc="upper left", fontsize=8)
-    plt.savefig(outfile, dpi=160)
-    plt.close()
+        plt.savefig(outfile, dpi=160)
+        plt.close()
 
-# --------- render charts ----------
-# traffic (14d)
-save_line_chart(last14, [clones_series, views_series], ["clones", "views"],
-                f"Traffic (last 14 days) — {OWNER}/{REPO}",
-                "metrics/traffic_14d.png")
-
-# commits (30d)
-save_line_chart(last30, [commits_series], ["commits/day"],
-                f"Commits (last 30 days) — {OWNER}/{REPO}",
-                "metrics/commits_30d.png")
-
-# stars & forks (30d cumulative)
-save_line_chart(last30, [stars_cumulative, forks_cumulative], ["stars (cum)", "forks (cum)"],
-                f"Stars & Forks (last 30 days, cumulative) — {OWNER}/{REPO}",
-                "metrics/stars_forks_30d.png")
-
-print("Wrote: metrics/traffic_14d.png, metrics/commits_30d.png, metrics/stars_forks_30d.png")
+if __name__ == "__main__":
+    plot_dashboard()
+    print("Wrote metrics/activity_4w.png and updated metrics_data/traffic_history.json")

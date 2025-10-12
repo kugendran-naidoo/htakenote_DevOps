@@ -53,7 +53,7 @@ jobs:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}     # PAT with 'gist'
         run: |
           set -euo pipefail
-          BODY=$(jq -nc --arg content "{\"schemaVersion\":1,\"label\":\"clones (14d)\",\"message\":\"${TOTAL_CLONES}\",\"color\":\"blue\"}" \
+          BODY=$(jq -nc --arg content "{\"schemaVersion\":1,\"label\":\"clones \",\"message\":\"${TOTAL_CLONES}\",\"color\":\"blue\"}" \
             '{files: {"clones.json": {content: $content}}}')
           curl -sS -o /tmp/resp.json -w "%{http_code}" -X PATCH \
             -H "Authorization: Bearer ${GIST_TOKEN}" \
@@ -67,7 +67,7 @@ jobs:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}     # PAT with 'gist'
         run: |
           set -euo pipefail
-          BODY=$(jq -nc --arg content "{\"schemaVersion\":1,\"label\":\"views (14d)\",\"message\":\"${TOTAL_VIEWS}\",\"color\":\"green\"}" \
+          BODY=$(jq -nc --arg content "{\"schemaVersion\":1,\"label\":\"views \",\"message\":\"${TOTAL_VIEWS}\",\"color\":\"green\"}" \
             '{files: {"views.json": {content: $content}}}')
           curl -sS -o /tmp/resp.json -w "%{http_code}" -X PATCH \
             -H "Authorization: Bearer ${GIST_TOKEN}" \

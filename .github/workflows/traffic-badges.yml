@@ -32,7 +32,7 @@ jobs:
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GITHUB_TOKEN }}
-          gistID: YOUR_CLONES_GIST_ID
+          gistID: 2b0de4f9f92a605b780e986e6d48ffcc
           filename: clones.json
           content: ${{ steps.update-traffic.outputs.content || '' }}
         env:
@@ -42,7 +42,7 @@ jobs:
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GITHUB_TOKEN }}
-          gistID: YOUR_VIEWS_GIST_ID
+          gistID: 9b749f24de62343dc995f8d524027c39
           filename: views.json
           content: ${{ steps.update-traffic.outputs.content || '' }}
         env:

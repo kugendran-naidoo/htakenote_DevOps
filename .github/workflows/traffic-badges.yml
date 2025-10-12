@@ -1,13 +1,18 @@
 name: Update Traffic Badges
 on:
   schedule:
-    - cron: "0 14 * * *"  # Runs everyday 14:00 UTC
-  workflow_dispatch:      # Allow manual runs too
+    - cron: "0 14 * * *"   # Everyday 14:00 UTC
+  workflow_dispatch:
 
 jobs:
   update-traffic:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Fetch repository traffic data
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -22,28 +27,28 @@ jobs:
             https://api.github.com/repos/$OWNER/$REPO/traffic/views \
             > traffic/views.json
 
-          TOTAL_CLONES=$(jq '[.clones[].count] | add' traffic/clones.json)
-          TOTAL_VIEWS=$(jq '[.views[].count] | add' traffic/views.json)
+          # Sum counts (GitHub returns last 14 days). That's fine for a weekly badge.
+          TOTAL_CLONES=$(jq '[.clones[].count] | add // 0' traffic/clones.json)
+          TOTAL_VIEWS=$(jq '[.views[].count] | add // 0' traffic/views.json)
 
           echo "{\"schemaVersion\":1,\"label\":\"weekly clones\",\"message\":\"$TOTAL_CLONES\",\"color\":\"blue\"}" > clones-badge.json
           echo "{\"schemaVersion\":1,\"label\":\"weekly views\",\"message\":\"$TOTAL_VIEWS\",\"color\":\"green\"}" > views-badge.json
 
+          echo "CONTENT_CLONES=$(cat clones-badge.json)" >> $GITHUB_ENV
+          echo "CONTENT_VIEWS=$(cat views-badge.json)" >> $GITHUB_ENV
+
       - name: Upload clone badge to Gist
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GITHUB_TOKEN }}
-          gistID: 2b0de4f9f92a605b780e986e6d48ffcc
-          filename: clones.json
-          content: ${{ steps.update-traffic.outputs.content || '' }}
-        env:
-          content: ${{ steps.update-traffic.outputs.content }}
+          auth: ${{ secrets.GIST_TOKEN }}          # <-- your PAT with gist write access
+          gistID: 2b0de4f9f92a605b780e986e6d48ffcc # <-- paste the hex ID for clones.json
+          filename: clones.json                    # must match your gist filename
+          content: ${{ env.CONTENT_CLONES }}
 
       - name: Upload view badge to Gist
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GITHUB_TOKEN }}
-          gistID: 9b749f24de62343dc995f8d524027c39
-          filename: views.json
-          content: ${{ steps.update-traffic.outputs.content || '' }}
-        env:
-          content: ${{ steps.update-traffic.outputs.content }}
+          auth: ${{ secrets.GIST_TOKEN }}          # <-- your PAT with gist write access
+          gistID: 9b749f24de62343dc995f8d524027c39 # <-- paste the hex ID for views.json
+          filename: views.json                     # must match your gist filename
+          content: ${{ env.CONTENT_VIEWS }}

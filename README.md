@@ -1,12 +1,15 @@
 # 🧠 HTakeNote
 
-![Stars](https://img.shields.io/github/stars/kugendran-naidoo/htakenote_DevOps?style=social)
+<!-- ![Star History](https://api.star-history.com/svg?repos=kugendran-naidoo/htakenote_DevOps&type=Date) -->
+<!-- With this: -->
+![Repobeats analytics](https://repobeats.axiom.co/api/embed/kugendran-naidoo/htakenote_DevOps.svg "Project activity overview")
+
 ![Forks](https://img.shields.io/github/forks/kugendran-naidoo/htakenote_DevOps?style=social)
 ![Issues](https://img.shields.io/github/issues/kugendran-naidoo/htakenote_DevOps)
 ![License](https://img.shields.io/github/license/kugendran-naidoo/htakenote_DevOps)
 ![Last Commit](https://img.shields.io/github/last-commit/kugendran-naidoo/htakenote_DevOps)
 [![Star History](https://api.star-history.com/svg?repos=kugendran-naidoo/htakenote_DevOps&type=Date)](https://star-history.com/#kugendran-naidoo/htakenote_DevOps)
-![Repobeats](https://repobeats.axiom.co/api/embed/kugendran-naidoo/htakenote_DevOps.svg "Repobeats analytics image")
+
 
 > 🚀 **HTakeNote** is a minimal Flask application for jotting down quick notes — ready to deploy on Heroku and optimized for simplicity, clarity, and quick DevOps integration.
 
